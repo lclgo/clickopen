@@ -2,28 +2,14 @@
   "manifest_version": 3,
   "name": "ClickOpen",
   "version": "1.0",
-  "description": "click open",
-  "permissions": [
-    "tabs",
-    "contextMenus",
-    "activeTab",
-    "storage"
-  ],
-  "host_permissions": [
-    "https://*/*",
-    "http://*/*"
-  ],
+  "description": "Quick access to your favorite websites",
+  "permissions": ["tabs", "contextMenus", "storage"],
+  "host_permissions": ["https://*/*", "http://*/*"],
   "action": {
     "default_title": "ClickOpen",
-    "default_icon": {
-      "32": "icons/favicon-32x32.png"
-    }
+    "default_icon": "icons/favicon-32x32.png"
   },
-  "background": {
-    "service_worker": "background.js"
-  },
+  "background": { "service_worker": "background.js" },
   "options_page": "options.html",
-  "icons": {
-    "32": "icons/favicon-32x32.png"
-  }
+  "icons": { "32": "icons/favicon-32x32.png" }
 }
