@@ -9,6 +9,10 @@
     "activeTab",
     "storage"
   ],
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
   "action": {
     "default_title": "ClickOpen",
     "default_icon": {
