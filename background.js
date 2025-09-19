@@ -3,22 +3,30 @@ const DEFAULTS = {
   links: [{ title: "Google", url: "https://www.google.com" }]
 };
 
+// Flag to prevent concurrent menu creation
+let isCreatingMenus = false;
+
 // Initialize extension on install
 chrome.runtime.onInstalled.addListener(async () => {
-  const result = await chrome.storage.sync.get([
-    'leftClickUrl', 
-    'rightClickLinks'
-  ]);
-  
-  const url = result.leftClickUrl || DEFAULTS.url;
-  
-  await chrome.storage.sync.set({
-    leftClickUrl: url,
-    rightClickLinks: result.rightClickLinks || DEFAULTS.links
-  });
-  
-  createContextMenus();
-  updateIcon(url);
+  try {
+    const result = await chrome.storage.sync.get([
+      'leftClickUrl', 
+      'rightClickLinks'
+    ]);
+    
+    const url = result.leftClickUrl || DEFAULTS.url;
+    
+    await chrome.storage.sync.set({
+      leftClickUrl: url,
+      rightClickLinks: result.rightClickLinks || DEFAULTS.links
+    });
+    
+    // Wait a bit to ensure storage is set before creating menus
+    setTimeout(() => createContextMenus(), 100);
+    updateIcon(url);
+  } catch (error) {
+    console.error('Failed to initialize extension:', error);
+  }
 });
 
 // Handle left click on extension icon
@@ -32,34 +40,50 @@ chrome.action.onClicked.addListener(async () => {
 
 // Create right-click context menus
 const createContextMenus = async () => {
-  await chrome.contextMenus.removeAll();
-  
-  const { rightClickLinks } = await chrome.storage.sync.get('rightClickLinks');
-  const links = rightClickLinks || DEFAULTS.links;
-  
-  // Add each link as a menu item
-  links.forEach((link, index) => {
-    chrome.contextMenus.create({
-      id: `link-${index}`,
-      title: link.title,
-      contexts: ["action"]
-    });
-  });
-  
-  // Add separator and settings menu
-  if (links.length > 0) {
-    chrome.contextMenus.create({
-      id: "separator",
-      type: "separator",
-      contexts: ["action"]
-    });
+  // Prevent concurrent menu creation
+  if (isCreatingMenus) {
+    return;
   }
   
-  chrome.contextMenus.create({
-    id: "settings",
-    title: "Settings",
-    contexts: ["action"]
-  });
+  isCreatingMenus = true;
+  
+  try {
+    // Ensure all existing menus are removed first
+    await chrome.contextMenus.removeAll();
+    
+    const { rightClickLinks } = await chrome.storage.sync.get('rightClickLinks');
+    const links = rightClickLinks || DEFAULTS.links;
+    
+    // Add each link as a menu item
+    for (let index = 0; index < links.length; index++) {
+      const link = links[index];
+      chrome.contextMenus.create({
+        id: `link-${index}`,
+        title: link.title || `Link ${index + 1}`,
+        contexts: ["action"]
+      });
+    }
+    
+    // Add separator and settings menu
+    if (links.length > 0) {
+      chrome.contextMenus.create({
+        id: "separator",
+        type: "separator",
+        contexts: ["action"]
+      });
+    }
+    
+    chrome.contextMenus.create({
+      id: "settings",
+      title: "Settings",
+      contexts: ["action"]
+    });
+    
+  } catch (error) {
+    console.error('Failed to create context menus:', error);
+  } finally {
+    isCreatingMenus = false;
+  }
 };
 
 // Handle context menu clicks
@@ -138,7 +162,8 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   }
   
   if (changes.rightClickLinks) {
-    createContextMenus();
+    // Add small delay to ensure previous operations complete
+    setTimeout(() => createContextMenus(), 50);
   }
   
   if (changes.leftClickUrl) {
