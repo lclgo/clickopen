@@ -54,6 +54,30 @@ const removeLink = (index) => {
   renderLinks();
 };
 
+// Export configuration as links.json
+const exportAsJson = () => {
+  const leftClickUrl = document.getElementById('leftClickUrl').value;
+  
+  const data = {
+    url: leftClickUrl || DEFAULTS.url,
+    links: rightClickLinks
+  };
+  
+  // Create blob and download
+  const jsonString = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'links.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  showStatus('links.json exported successfully!');
+};
+
 // Render all right-click links
 const renderLinks = () => {
   const container = document.getElementById('rightClickLinks');
@@ -80,6 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Bind save button
   document.getElementById('save').onclick = saveConfig;
+  
+  // Bind export button
+  document.getElementById('export').onclick = exportAsJson;
   
   // Bind add link button
   document.getElementById('addLink').onclick = addLink;

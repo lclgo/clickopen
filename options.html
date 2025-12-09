@@ -83,6 +83,20 @@
             background: #2d8f47;
         }
         
+        .export-btn {
+            background: #fbbc04;
+            margin-left: 10px;
+        }
+        
+        .export-btn:hover {
+            background: #f0a800;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
         .status {
             margin-top: 10px;
             padding: 10px;
@@ -115,7 +129,10 @@
             <div id="rightClickLinks"></div>
             <button class="add-btn" id="addLink">Add Link</button>
         </div>
-        <button id="save">Save Settings</button>
+        <div class="button-group">
+            <button id="save">Save Settings</button>
+            <button class="export-btn" id="export">Export as links.json</button>
+        </div>
         <div class="status" id="status"></div>
     </div>
     <script src="options.js"></script>
