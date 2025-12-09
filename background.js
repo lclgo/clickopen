@@ -158,11 +158,11 @@ const updateIcon = async (url) => {
     }
     
     // Fallback to default icon
-    chrome.action.setIcon({ path: "icons/favicon-32x32.png" });
+    chrome.action.setIcon({ path: "icon.png" });
     
   } catch (error) {
     // Fallback to default icon on any error
-    chrome.action.setIcon({ path: "icons/favicon-32x32.png" });
+    chrome.action.setIcon({ path: "icon.png" });
   }
 };
 
