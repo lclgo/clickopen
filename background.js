@@ -6,24 +6,43 @@ const DEFAULTS = {
 // Flag to prevent concurrent menu creation
 let isCreatingMenus = false;
 
+// Load links from links.json if it exists
+const loadLinksFromJson = async () => {
+  try {
+    const response = await fetch(chrome.runtime.getURL('links.json'));
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        url: data.url || DEFAULTS.url,
+        links: data.links || DEFAULTS.links
+      };
+    }
+  } catch (error) {
+    console.log('links.json not found or failed to load, using defaults:', error.message);
+  }
+  return null;
+};
+
 // Initialize extension on install
 chrome.runtime.onInstalled.addListener(async () => {
   try {
+    const linksData = await loadLinksFromJson();
+    const url = linksData?.url || DEFAULTS.url;
+    const links = linksData?.links || DEFAULTS.links;
+    
     const result = await chrome.storage.sync.get([
       'leftClickUrl', 
       'rightClickLinks'
     ]);
     
-    const url = result.leftClickUrl || DEFAULTS.url;
-    
     await chrome.storage.sync.set({
-      leftClickUrl: url,
-      rightClickLinks: result.rightClickLinks || DEFAULTS.links
+      leftClickUrl: result.leftClickUrl || url,
+      rightClickLinks: result.rightClickLinks || links
     });
     
     // Wait a bit to ensure storage is set before creating menus
     setTimeout(() => createContextMenus(), 100);
-    updateIcon(url);
+    updateIcon(result.leftClickUrl || url);
   } catch (error) {
     console.error('Failed to initialize extension:', error);
   }

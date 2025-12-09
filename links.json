@@ -1,0 +1,9 @@
+{
+  "url": "https://www.example.com",
+  "links": [
+    { "title": "Google", "url": "https://www.google.com" },
+    { "title": "GitHub", "url": "https://www.github.com" },
+    { "title": "Stack Overflow", "url": "https://www.stackoverflow.com" }
+  ]
+}
+
