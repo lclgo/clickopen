@@ -21,25 +21,95 @@ const showStatus = (message, isError = false) => {
 const loadConfig = async () => {
   const result = await chrome.storage.sync.get([
     'leftClickUrl', 
-    'rightClickLinks'
+    'rightClickLinks',
+    'forceCustomIcon'
   ]);
+  
+  const localResult = await chrome.storage.local.get(['customIcon']);
   
   document.getElementById('leftClickUrl').value = 
     result.leftClickUrl || DEFAULTS.url;
   rightClickLinks = result.rightClickLinks || [];
+  
+  // Load custom icon settings
+  document.getElementById('forceCustomIcon').checked = result.forceCustomIcon || false;
+  if (localResult.customIcon) {
+    showIconPreview(localResult.customIcon);
+  }
   renderLinks();
 };
 
 // Save configuration to storage
 const saveConfig = async () => {
   const leftClickUrl = document.getElementById('leftClickUrl').value;
+  const forceCustomIcon = document.getElementById('forceCustomIcon').checked;
   
   await chrome.storage.sync.set({
     leftClickUrl,
-    rightClickLinks
+    rightClickLinks,
+    forceCustomIcon
   });
   
   showStatus('Settings saved successfully!');
+};
+
+// Show icon preview
+const showIconPreview = (dataUrl) => {
+  const preview = document.getElementById('iconPreview');
+  const placeholder = document.getElementById('iconPlaceholder');
+  const previewImg = document.getElementById('previewImg');
+  
+  previewImg.src = dataUrl;
+  previewImg.style.display = 'block';
+  placeholder.style.display = 'none';
+  preview.classList.add('has-icon');
+};
+
+// Clear icon preview
+const clearIconPreview = () => {
+  const preview = document.getElementById('iconPreview');
+  const placeholder = document.getElementById('iconPlaceholder');
+  const previewImg = document.getElementById('previewImg');
+  
+  previewImg.src = '';
+  previewImg.style.display = 'none';
+  placeholder.style.display = 'block';
+  preview.classList.remove('has-icon');
+};
+
+// Handle icon file import
+const handleIconImport = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    showStatus('Please select a valid image file', true);
+    // Reset input to allow re-selecting the same file
+    event.target.value = '';
+    return;
+  }
+  // Validate file size (max 100KB)
+  if (file.size > 100 * 1024) {
+    showStatus('Icon file size must be less than 100KB', true);
+    // Reset input to allow re-selecting the same file
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const dataUrl = e.target.result;
+    // Save to local storage
+    await chrome.storage.local.set({ customIcon: dataUrl });
+    // Show preview
+    showIconPreview(dataUrl);
+    showStatus('Icon imported successfully!');
+  };
+  reader.onerror = () => {
+    showStatus('Failed to read icon file', true);
+  };
+  reader.readAsDataURL(file);
+  // Reset input value to allow re-selecting the same file
+  event.target.value = '';
 };
 
 // Add new link to the list
@@ -110,6 +180,13 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Bind add link button
   document.getElementById('addLink').onclick = addLink;
+  // Bind icon import button
+  document.getElementById('importIcon').onclick = () => {
+    document.getElementById('iconInput').click();
+  };
+  // Bind icon file input change
+  document.getElementById('iconInput').onchange = handleIconImport;
+
   
   // Handle remove button clicks and input changes
   const linksContainer = document.getElementById('rightClickLinks');

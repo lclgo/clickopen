@@ -6,19 +6,38 @@ const DEFAULTS = {
 // Flag to prevent concurrent menu creation
 let isCreatingMenus = false;
 
-// Load links from links.json if it exists
+// Load links from any links*.json file if it exists
 const loadLinksFromJson = async () => {
-  try {
-    const response = await fetch(chrome.runtime.getURL('links.json'));
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        url: data.url || DEFAULTS.url,
-        links: data.links || DEFAULTS.links
-      };
+  // List of possible links json files to try (links.json and links(1).json to links(12).json)
+  const possibleFiles = [
+    'links (12).json',
+    'links (11).json',
+    'links (10).json',
+    'links (9).json',
+    'links (8).json',
+    'links (7).json',
+    'links (6).json',
+    'links (5).json',
+    'links (4).json',
+    'links (3).json',
+    'links (2).json',
+    'links (1).json',
+    'links.json',
+  ];
+
+  for (const filename of possibleFiles) {
+    try {
+      const response = await fetch(chrome.runtime.getURL(filename));
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          url: data.url || DEFAULTS.url,
+          links: data.links || DEFAULTS.links
+        };
+      }
+    } catch (error) {
+      continue;
     }
-  } catch (error) {
-    console.log('links.json not found or failed to load, using defaults:', error.message);
   }
   return null;
 };
@@ -127,6 +146,15 @@ chrome.contextMenus.onClicked.addListener(async ({ menuItemId }) => {
 // Update extension icon based on URL
 const updateIcon = async (url) => {
   try {
+    // Check if force custom icon is enabled
+    const { forceCustomIcon } = await chrome.storage.sync.get('forceCustomIcon');
+    const { customIcon } = await chrome.storage.local.get('customIcon');
+    
+    // Use custom icon if force mode is enabled and custom icon exists
+    if (forceCustomIcon && customIcon) {
+      return chrome.action.setIcon({ path: customIcon });
+    }
+    
     const domain = new URL(url).hostname;
     const { iconCache = {} } = await chrome.storage.local.get('iconCache');
     
@@ -157,11 +185,20 @@ const updateIcon = async (url) => {
       }
     }
     
-    // Fallback to default icon
+    // Fallback to custom icon if available, otherwise default icon
+    if (customIcon) {
+      return chrome.action.setIcon({ path: customIcon });
+    }
     chrome.action.setIcon({ path: "icon.png" });
     
   } catch (error) {
-    // Fallback to default icon on any error
+    // Fallback to custom icon or default icon on any error
+    try {
+      const { customIcon } = await chrome.storage.local.get('customIcon');
+      if (customIcon) {
+        return chrome.action.setIcon({ path: customIcon });
+      }
+    } catch (e) {}
     chrome.action.setIcon({ path: "icon.png" });
   }
 };
@@ -176,17 +213,31 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // Listen for storage changes and update accordingly
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace !== 'sync') {
-    return;
+  if (namespace === 'sync') {
+    if (changes.rightClickLinks) {
+      // Add small delay to ensure previous operations complete
+      setTimeout(() => createContextMenus(), 50);
+    }
+    
+    if (changes.leftClickUrl) {
+      const newUrl = changes.leftClickUrl.newValue || DEFAULTS.url;
+      updateIcon(newUrl);
+    }
+    
+    // Update icon when forceCustomIcon setting changes
+    if (changes.forceCustomIcon) {
+      chrome.storage.sync.get('leftClickUrl').then(({ leftClickUrl }) => {
+        updateIcon(leftClickUrl || DEFAULTS.url);
+      });
+    }
   }
   
-  if (changes.rightClickLinks) {
-    // Add small delay to ensure previous operations complete
-    setTimeout(() => createContextMenus(), 50);
-  }
-  
-  if (changes.leftClickUrl) {
-    const newUrl = changes.leftClickUrl.newValue || DEFAULTS.url;
-    updateIcon(newUrl);
+  // Update icon when customIcon changes in local storage
+  if (namespace === 'local' && changes.customIcon) {
+    chrome.storage.sync.get(['leftClickUrl', 'forceCustomIcon']).then(({ leftClickUrl, forceCustomIcon }) => {
+      if (forceCustomIcon) {
+        updateIcon(leftClickUrl || DEFAULTS.url);
+      }
+    });
   }
 });
