@@ -88,13 +88,7 @@ const handleIconImport = (event) => {
     event.target.value = '';
     return;
   }
-  // Validate file size (max 100KB)
-  if (file.size > 100 * 1024) {
-    showStatus('Icon file size must be less than 100KB', true);
-    // Reset input to allow re-selecting the same file
-    event.target.value = '';
-    return;
-  }
+
   const reader = new FileReader();
   reader.onload = async (e) => {
     const dataUrl = e.target.result;
