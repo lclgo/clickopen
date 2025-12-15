@@ -46,11 +46,46 @@
             gap: 10px;
             margin-bottom: 10px;
             align-items: center;
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            transition: box-shadow 0.2s, background-color 0.2s;
+        }
+        
+        .link-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .link-item.dragging {
+            opacity: 0.5;
+            background: #e3f2fd;
+        }
+        
+        .link-item.drag-over {
+            border-top: 2px solid #4285f4;
+        }
+        
+        .drag-handle {
+            cursor: grab;
+            color: #999;
+            font-size: 16px;
+            padding: 0 5px;
+            user-select: none;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        
+        .drag-handle:hover {
+            color: #666;
         }
         
         .link-item input {
             flex: 1;
         }
+
         
         button {
             padding: 8px 16px;

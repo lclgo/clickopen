@@ -189,7 +189,8 @@ const renderLinks = () => {
   
   container.innerHTML = rightClickLinks
     .map((link, index) => `
-      <div class="link-item" data-index="${index}">
+      <div class="link-item" data-index="${index}" draggable="true">
+        <span class="drag-handle" title="Drag to reorder">☰</span>
         <input type="text" 
                placeholder="Link Name" 
                class="title-input" 
@@ -201,7 +202,72 @@ const renderLinks = () => {
         <button class="remove-btn">Remove</button>
       </div>
     `).join('');
+  
+  // Setup drag and drop after rendering
+  setupDragAndDrop();
 };
+
+// Drag and drop state
+let draggedItem = null;
+let draggedIndex = null;
+
+// Setup drag and drop functionality
+const setupDragAndDrop = () => {
+  const container = document.getElementById('rightClickLinks');
+  const items = container.querySelectorAll('.link-item');
+  
+  items.forEach((item) => {
+    // Drag start
+    item.addEventListener('dragstart', (e) => {
+      draggedItem = item;
+      draggedIndex = parseInt(item.dataset.index);
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', item.dataset.index);
+    });
+    
+    // Drag end
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      draggedItem = null;
+      draggedIndex = null;
+      // Remove all drag-over classes
+      items.forEach(i => i.classList.remove('drag-over'));
+    });
+    
+    // Drag over
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (draggedItem && draggedItem !== item) {
+        item.classList.add('drag-over');
+      }
+    });
+    
+    // Drag leave
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('drag-over');
+    });
+    
+    // Drop
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      
+      if (draggedItem && draggedItem !== item) {
+        const targetIndex = parseInt(item.dataset.index);
+        
+        // Reorder the array
+        const [movedItem] = rightClickLinks.splice(draggedIndex, 1);
+        rightClickLinks.splice(targetIndex, 0, movedItem);
+        
+        // Re-render the links
+        renderLinks();
+      }
+    });
+  });
+};
+
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
