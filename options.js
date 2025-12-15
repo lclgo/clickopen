@@ -77,6 +77,41 @@ const clearIconPreview = () => {
   preview.classList.remove('has-icon');
 };
 
+// Compress image to specified size
+const compressImage = (dataUrl, maxSize = 128) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Calculate new dimensions maintaining aspect ratio
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > maxSize || height > maxSize) {
+        if (width > height) {
+          height = Math.round((height * maxSize) / width);
+          width = maxSize;
+        } else {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Draw and compress
+      ctx.drawImage(img, 0, 0, width, height);
+      const compressedDataUrl = canvas.toDataURL('image/png');
+      resolve(compressedDataUrl);
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataUrl;
+  });
+};
+
 // Handle icon file import
 const handleIconImport = (event) => {
   const file = event.target.files[0];
@@ -91,12 +126,18 @@ const handleIconImport = (event) => {
 
   const reader = new FileReader();
   reader.onload = async (e) => {
-    const dataUrl = e.target.result;
-    // Save to local storage
-    await chrome.storage.local.set({ customIcon: dataUrl });
-    // Show preview
-    showIconPreview(dataUrl);
-    showStatus('Icon imported successfully!');
+    try {
+      const dataUrl = e.target.result;
+      // Compress image to 128x128
+      const compressedDataUrl = await compressImage(dataUrl, 128);
+      // Save to local storage
+      await chrome.storage.local.set({ customIcon: compressedDataUrl });
+      // Show preview
+      showIconPreview(compressedDataUrl);
+      showStatus('Icon imported and compressed successfully!');
+    } catch (err) {
+      showStatus('Failed to process icon file', true);
+    }
   };
   reader.onerror = () => {
     showStatus('Failed to read icon file', true);
